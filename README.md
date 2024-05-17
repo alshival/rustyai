@@ -15,6 +15,8 @@ Create a `secrets.toml` file in the active directory of your project with the fo
 ```toml
 [openai]
 api_key = "your_openai_api_key_here"
+organization = "your_organization_id_here"
+project = "your_project_id_here"
 ```
 
 ### Example Code

@@ -1,4 +1,5 @@
 use reqwest::{Client, Response};
+use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde::Deserialize;
 use serde_json::Value;
 use std::fs;
@@ -9,7 +10,7 @@ use futures::StreamExt;
 use std::env;
 use toml::value::Table;
 
-pub fn get_api_key() -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_api_key() -> Result<(String, String, String), Box<dyn std::error::Error>> {
     let current_dir = env::current_dir()?;
     let secrets_path: PathBuf = current_dir.join("secrets.toml");
 
@@ -17,8 +18,26 @@ pub fn get_api_key() -> Result<String, Box<dyn std::error::Error>> {
     let keychain: Table = toml::from_str(&toml_content)?;
     let openai_keys = keychain.get("openai").ok_or("Missing 'openai' section in secrets.toml")?;
     let api_key = openai_keys.get("api_key").ok_or("Missing 'api_key' in 'openai' section")?.as_str().ok_or("api_key is not a string")?;
+    let organization = openai_keys.get("organization").ok_or("Missing 'organization' in 'openai' section")?.as_str().ok_or("organization is not a string")?;
+    let project = openai_keys.get("project").ok_or("Missing 'project' in 'openai' section")?.as_str().ok_or("project is not a string")?;
 
-    Ok(api_key.to_string())
+    Ok((api_key.to_string(), organization.to_string(), project.to_string()))
+}
+
+pub fn create_client() -> Result<Client, Box<dyn std::error::Error>> {
+    let (api_key, organization, project) = get_api_key()?;
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", api_key))?);
+    headers.insert("OpenAI-Organization", HeaderValue::from_str(&organization)?);
+    headers.insert("OpenAI-Project", HeaderValue::from_str(&project)?);
+
+    let client = Client::builder()
+        .default_headers(headers)
+        .build()?;
+
+    Ok(client)
 }
 
 #[derive(Default)]
@@ -36,7 +55,7 @@ pub async fn chat_completion(
     model: String,
     params: ChatCompletionParams,
 ) -> Result<Value, Box<dyn std::error::Error>> {
-    let api_key = get_api_key()?;
+    let client = create_client()?;
     let mut body = serde_json::json!({
         "model": model,
         "messages": messages
@@ -58,11 +77,7 @@ pub async fn chat_completion(
         body["presence_penalty"] = serde_json::json!(presence_penalty);
     }
 
-    let client = Client::new();
-
     let response = client.post("https://api.openai.com/v1/chat/completions")
-        .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", api_key))
         .json(&body)
         .send()
         .await?;
@@ -78,7 +93,7 @@ pub async fn chat_completion_stream(
     params: ChatCompletionParams,
     tx: Sender<String>,
 ) -> Result<Value, Box<dyn std::error::Error>> {
-    let api_key = get_api_key()?;
+    let client = create_client()?;
     let mut body = serde_json::json!({
         "model": model,
         "messages": messages
@@ -101,11 +116,7 @@ pub async fn chat_completion_stream(
     }
     body["stream"] = serde_json::json!(true);
 
-    let client = Client::new();
-
     let mut response = client.post("https://api.openai.com/v1/chat/completions")
-        .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", api_key))
         .json(&body)
         .send()
         .await?;
