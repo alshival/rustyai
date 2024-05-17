@@ -1,0 +1,13 @@
+[package]
+name = "rustyai"
+version = "0.1.0"
+authors = ["Alshival's Data Service <support@alshival.com>"]
+edition = "2021"
+description = "A rusty wrapper for openAI's API"
+
+[dependencies]
+toml = "0.8.12"
+tokio = { version = "1.37.0", features = ["full"] }
+serde = { version = "1.0.197", features = ["derive"] }
+reqwest = { version = "0.12.4", features = ["json"] }
+serde_json = "1.0.117"
