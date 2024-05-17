@@ -1,5 +1,5 @@
 # RustyAI 
-A Rust OpenAI API Client for interacting with OpenAI's API, allowing for chat completions and streaming chat completions. 
+A Rust OpenAI API Client by [Alshival's Data Service] for interacting with OpenAI's API, allowing for chat completions and streaming chat completions. 
 
 ## Features
 - Retrieve OpenAI API key from a `secrets.toml` file.
