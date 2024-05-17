@@ -103,9 +103,3 @@ We plan on incorporating more features in the near future, especially those arou
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a pull request or open an issue.
-
-## Contact
-
-For any questions or feedback, feel free to reach out.
-
-Happy coding!
